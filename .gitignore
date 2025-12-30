@@ -14,8 +14,16 @@ venv/
 env/
 ENV/
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
 # ChromaDB
 backend/chroma_db/
+chroma_db/
 
 # Uploads
 uploads/
@@ -29,3 +37,8 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright
+tests/test-results/
+tests/playwright-report/
+tests/.cache/

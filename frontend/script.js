@@ -189,7 +189,9 @@ async function handleNewChat() {
 
     // If no session exists yet, just reset UI
     if (!currentSessionId) {
+        chatInput.value = ''; // Clear input field
         createNewSession();
+        chatInput.focus();
         return;
     }
 
@@ -223,6 +225,7 @@ async function handleNewChat() {
         newChatButton.disabled = false;
         chatInput.disabled = false;
         sendButton.disabled = false;
+        chatInput.value = ''; // Clear input field
         chatInput.focus();
     }
 }
