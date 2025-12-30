@@ -115,26 +115,52 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
     messageDiv.id = `message-${messageId}`;
-    
+
     // Convert markdown to HTML for assistant messages
     const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
-    
+
     let html = `<div class="message-content">${displayContent}</div>`;
-    
+
     if (sources && sources.length > 0) {
+        const sourcesHtml = formatSources(sources);
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourcesHtml}</div>
             </details>
         `;
     }
-    
+
     messageDiv.innerHTML = html;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     return messageId;
+}
+
+// Helper function to format sources with links
+function formatSources(sources) {
+    const formattedSources = sources.map(source => {
+        // Check if source is a dictionary object
+        if (typeof source === 'object' && source !== null && 'display' in source) {
+            // Dictionary format: {display: "...", url: "..."}
+            const display = escapeHtml(source.display);
+            const url = source.url;
+
+            if (url && url.trim() !== '') {
+                // Create clickable link with line break
+                return `<div class="source-item"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="source-link">${display}</a></div>`;
+            } else {
+                // No URL available, just show display text
+                return `<div class="source-item"><span class="source-text">${display}</span></div>`;
+            }
+        } else {
+            // Legacy string format (backward compatibility)
+            return `<div class="source-item"><span class="source-text">${escapeHtml(source)}</span></div>`;
+        }
+    });
+
+    return formattedSources.join('');
 }
 
 // Helper function to escape HTML for user messages

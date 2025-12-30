@@ -241,8 +241,67 @@ header h1 {
 }
 
 .sources-content {
-    padding: 0 0.5rem 0.25rem 1.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
     color: var(--text-secondary);
+    line-height: 1.8;
+    /* Better spacing between links */
+}
+
+/* Source Items - Each citation on its own line */
+.source-item {
+    margin: 0.4rem 0;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid rgba(96, 165, 250, 0.3);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.source-item:hover {
+    background-color: rgba(96, 165, 250, 0.08);
+    border-left-color: #60a5fa;
+}
+
+/* Source Links */
+.source-link {
+    color: #60a5fa;
+    /* Brighter blue for better contrast on dark background */
+    text-decoration: underline;
+    text-decoration-color: rgba(96, 165, 250, 0.4);
+    text-underline-offset: 2px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.source-link:hover {
+    color: #93c5fd;
+    /* Lighter blue on hover */
+    text-decoration-color: #93c5fd;
+    text-decoration-thickness: 2px;
+}
+
+.source-link:focus {
+    outline: 2px solid #60a5fa;
+    outline-offset: 3px;
+    border-radius: 3px;
+    background-color: rgba(96, 165, 250, 0.1);
+}
+
+.source-link:visited {
+    color: #a78bfa;
+    /* Purple for visited links */
+    text-decoration-color: rgba(167, 139, 250, 0.4);
+}
+
+.source-link:active {
+    color: #c4b5fd;
+}
+
+.source-text {
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
 /* Markdown formatting styles */

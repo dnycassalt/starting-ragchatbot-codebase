@@ -89,28 +89,53 @@ class CourseSearchTool(Tool):
         """Format search results with course and lesson context"""
         formatted = []
         sources = []  # Track sources for the UI
-        
+
+        # Track unique sources to avoid duplicates
+        seen_sources = set()
+
         for doc, meta in zip(results.documents, results.metadata):
             course_title = meta.get('course_title', 'unknown')
             lesson_num = meta.get('lesson_number')
-            
-            # Build context header
+
+            # Build context header for Claude
             header = f"[{course_title}"
             if lesson_num is not None:
                 header += f" - Lesson {lesson_num}"
             header += "]"
-            
-            # Track source for the UI
-            source = course_title
-            if lesson_num is not None:
-                source += f" - Lesson {lesson_num}"
-            sources.append(source)
-            
+
+            # Create source dictionary with link retrieval
+            source_key = f"{course_title}|{lesson_num if lesson_num is not None else 'none'}"
+
+            if source_key not in seen_sources:
+                # Build display text
+                display_text = course_title
+                if lesson_num is not None:
+                    display_text += f" - Lesson {lesson_num}"
+
+                # Retrieve appropriate link
+                url = None
+                if lesson_num is not None:
+                    # Try to get lesson-specific link first
+                    url = self.store.get_lesson_link(course_title, lesson_num)
+
+                # Fallback to course link if no lesson link
+                if url is None:
+                    url = self.store.get_course_link(course_title)
+
+                # Create source dictionary
+                source_dict = {
+                    'display': display_text,
+                    'url': url  # Will be None if no link available
+                }
+
+                sources.append(source_dict)
+                seen_sources.add(source_key)
+
             formatted.append(f"{header}\n{doc}")
-        
+
         # Store sources for retrieval
         self.last_sources = sources
-        
+
         return "\n\n".join(formatted)
 
 class ToolManager:
