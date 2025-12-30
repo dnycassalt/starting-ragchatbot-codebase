@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 from dataclasses import dataclass
+import uuid
 
 @dataclass
 class Message:
@@ -9,16 +10,14 @@ class Message:
 
 class SessionManager:
     """Manages conversation sessions and message history"""
-    
+
     def __init__(self, max_history: int = 5):
         self.max_history = max_history
         self.sessions: Dict[str, List[Message]] = {}
-        self.session_counter = 0
-    
+
     def create_session(self) -> str:
-        """Create a new conversation session"""
-        self.session_counter += 1
-        session_id = f"session_{self.session_counter}"
+        """Create a new conversation session with a random UUID"""
+        session_id = str(uuid.uuid4())
         self.sessions[session_id] = []
         return session_id
     
@@ -59,3 +58,18 @@ class SessionManager:
         """Clear all messages from a session"""
         if session_id in self.sessions:
             self.sessions[session_id] = []
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session completely from memory.
+
+        Args:
+            session_id: The session ID to delete
+
+        Returns:
+            True if session was deleted, False if session didn't exist
+        """
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            return True
+        return False

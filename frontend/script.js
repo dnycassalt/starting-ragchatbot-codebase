@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
-    
+    newChatButton = document.getElementById('newChatButton');
+
     setupEventListeners();
     createNewSession();
     loadCourseStats();
@@ -28,8 +29,10 @@ function setupEventListeners() {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
-    
-    
+
+    // New chat button
+    newChatButton.addEventListener('click', handleNewChat);
+
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -176,6 +179,52 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+async function handleNewChat() {
+    // Don't allow new chat during active request
+    if (chatInput.disabled || sendButton.disabled) {
+        return;
+    }
+
+    // If no session exists yet, just reset UI
+    if (!currentSessionId) {
+        createNewSession();
+        return;
+    }
+
+    // Save session ID before clearing
+    const sessionToDelete = currentSessionId;
+
+    // Disable UI during cleanup
+    newChatButton.disabled = true;
+    chatInput.disabled = true;
+    sendButton.disabled = true;
+
+    try {
+        // Call backend to delete session
+        const response = await fetch(`${API_URL}/session/${sessionToDelete}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            console.warn('Session deletion failed, but continuing with UI reset');
+        }
+
+        // Always reset UI regardless of backend result
+        createNewSession();
+
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        // Still reset UI even if backend cleanup failed
+        createNewSession();
+    } finally {
+        // Re-enable UI
+        newChatButton.disabled = false;
+        chatInput.disabled = false;
+        sendButton.disabled = false;
+        chatInput.focus();
+    }
 }
 
 // Load course statistics
