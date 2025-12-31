@@ -364,6 +364,26 @@ If users encounter "query failed" errors, it's an **environmental/operational is
 ## Quick Reference
 
 ### Run All Tests
+
+**Using Make (Recommended):**
+```bash
+# Run unit tests only
+make test-unit
+
+# Run integration tests only
+make test-integration
+
+# Run all tests (unit + integration)
+make test-all
+
+# Run with coverage report
+make test-coverage
+
+# See all available commands
+make help
+```
+
+**Direct Commands:**
 ```bash
 # Backend unit tests
 cd backend && uv run pytest tests/ -v
