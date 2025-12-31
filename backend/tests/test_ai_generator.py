@@ -192,12 +192,23 @@ class TestToolExecutionHandler:
             assert final_call_args['messages'][1]['role'] == 'assistant'
             assert final_call_args['messages'][2]['role'] == 'user'
 
-    def test_handle_tool_execution_removes_tools_from_final_call(self, mock_anthropic_client, mock_anthropic_response_with_tool, mock_anthropic_final_response, mock_tool_manager):
-        """Test that final API call doesn't include tools parameter"""
+    def test_handle_tool_execution_includes_tools_in_round_1(
+        self,
+        mock_anthropic_client,
+        mock_anthropic_response_with_tool,
+        mock_anthropic_final_response,
+        mock_tool_manager
+    ):
+        """Test that Round 1 includes tools for potential sequential calls"""
         with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
-            generator = AIGenerator(api_key="test-key", model="claude-sonnet-4-20250514")
+            generator = AIGenerator(
+                api_key="test-key",
+                model="claude-sonnet-4-20250514"
+            )
 
-            mock_anthropic_client.messages.create.return_value = mock_anthropic_final_response
+            mock_anthropic_client.messages.create.return_value = (
+                mock_anthropic_final_response
+            )
 
             base_params = {
                 "messages": [{"role": "user", "content": "Test"}],
@@ -212,10 +223,10 @@ class TestToolExecutionHandler:
                 mock_tool_manager
             )
 
-            # Final call should NOT have tools
-            final_call_args = mock_anthropic_client.messages.create.call_args[1]
-            assert 'tools' not in final_call_args
-            assert 'tool_choice' not in final_call_args
+            # Round 1 SHOULD have tools (to allow sequential calls)
+            round1_call_args = mock_anthropic_client.messages.create.call_args[1]
+            assert 'tools' in round1_call_args
+            assert 'tool_choice' in round1_call_args
 
     def test_handle_tool_execution_with_tool_error(self, mock_anthropic_client, mock_anthropic_response_with_tool, mock_anthropic_final_response, mock_tool_manager):
         """Test tool execution when tool returns error message"""

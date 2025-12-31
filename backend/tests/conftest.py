@@ -26,6 +26,7 @@ def test_config():
         CHUNK_OVERLAP=100,
         MAX_RESULTS=5,
         MAX_HISTORY=2,
+        MAX_TOOL_ROUNDS=2,
         CHROMA_PATH="./test_chroma_db"
     )
 
