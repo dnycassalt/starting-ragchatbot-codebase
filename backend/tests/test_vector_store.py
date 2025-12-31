@@ -43,12 +43,13 @@ class TestVectorStoreSearch:
                     max_results=test_config.MAX_RESULTS
                 )
 
-                # Mock course name resolution
-                with patch.object(store, '_resolve_course_name', return_value="Introduction to MCP"):
+                # Mock course name resolution with a proper Mock
+                mock_resolve = Mock(return_value="Introduction to MCP")
+                with patch.object(store, '_resolve_course_name', mock_resolve):
                     results = store.search("test query", course_name="MCP")
 
                 # Verify course name was resolved
-                store._resolve_course_name.assert_called_once_with("MCP")
+                mock_resolve.assert_called_once_with("MCP")
 
                 # Verify search called with filter
                 call_args = store.course_content.query.call_args
