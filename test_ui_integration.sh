@@ -145,6 +145,49 @@ else
 fi
 echo ""
 
+# Test 8: Sequential Tool Calling - Comparison Query
+echo "Test 8: Testing sequential tool calling with comparison query..."
+COMPARE_RESPONSE=$(curl -s -X POST http://localhost:8000/api/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Compare lesson 3 in Advanced Retrieval for AI with Chroma vs Prompt Compression and Query Optimization"}')
+
+if echo "$COMPARE_RESPONSE" | grep -q "answer"; then
+    COMPARE_ANSWER=$(echo "$COMPARE_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['answer'][:120])" 2>/dev/null || echo "$COMPARE_RESPONSE" | grep -o '"answer":"[^"]*"' | head -1 | cut -d'"' -f4)
+    echo -e "${GREEN}✓ Comparison query successful (should use 2 sequential searches)${NC}"
+    echo "  Preview: ${COMPARE_ANSWER}..."
+
+    # Check sources
+    SOURCE_COUNT=$(echo "$COMPARE_RESPONSE" | python3 -c "import sys, json; print(len(json.load(sys.stdin).get('sources', [])))" 2>/dev/null || echo "0")
+    if [ "$SOURCE_COUNT" -gt 0 ]; then
+        echo -e "${GREEN}✓ Sources returned: $SOURCE_COUNT sources${NC}"
+    fi
+else
+    echo -e "${RED}✗ Comparison query failed${NC}"
+    echo "Response: ${COMPARE_RESPONSE:0:200}"
+fi
+echo ""
+
+# Test 9: Sequential Tool Calling - Multi-Part Query
+echo "Test 9: Testing multi-part query (get topic, find related courses)..."
+MULTIPART_RESPONSE=$(curl -s -X POST http://localhost:8000/api/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "What topic is covered in lesson 1 of MCP and find other courses about that topic"}')
+
+if echo "$MULTIPART_RESPONSE" | grep -q "answer"; then
+    MULTIPART_ANSWER=$(echo "$MULTIPART_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['answer'][:120])" 2>/dev/null || echo "$MULTIPART_RESPONSE" | grep -o '"answer":"[^"]*"' | head -1 | cut -d'"' -f4)
+    echo -e "${GREEN}✓ Multi-part query successful (should use sequential searches)${NC}"
+    echo "  Preview: ${MULTIPART_ANSWER}..."
+
+    # Check if MCP mentioned
+    if echo "$MULTIPART_RESPONSE" | grep -qi "mcp\|model context protocol"; then
+        echo -e "${GREEN}✓ Answer references MCP${NC}"
+    fi
+else
+    echo -e "${RED}✗ Multi-part query failed${NC}"
+    echo "Response: ${MULTIPART_RESPONSE:0:200}"
+fi
+echo ""
+
 # Summary
 echo "=========================================="
 echo -e "${GREEN}All Tests Passed! ✓${NC}"
@@ -160,3 +203,7 @@ echo "4. Verify you're accessing http://localhost:8000"
 echo ""
 echo "To test in browser, visit: http://localhost:8000"
 echo "Try asking: 'What is MCP?'"
+echo ""
+echo "Sequential Tool Calling Examples:"
+echo "- 'Compare lesson 3 in MCP vs Advanced Retrieval'"
+echo "- 'What topic is in lesson 1 of MCP and find other courses about that'"
