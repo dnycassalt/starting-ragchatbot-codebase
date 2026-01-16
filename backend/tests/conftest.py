@@ -337,3 +337,136 @@ def mock_session_manager():
     mock.delete_session.return_value = True
 
     return mock
+
+
+# ==================== FastAPI Testing Fixtures ====================
+
+@pytest.fixture
+def mock_rag_system(mock_vector_store, mock_tool_manager, mock_session_manager):
+    """Mock RAGSystem for API testing"""
+    from rag_system import RAGSystem
+
+    mock = Mock(spec=RAGSystem)
+
+    # Core components
+    mock.vector_store = mock_vector_store
+    mock.tool_manager = mock_tool_manager
+    mock.session_manager = mock_session_manager
+
+    # Query method returns answer and sources
+    mock.query.return_value = (
+        "This is a test response about MCP.",
+        [
+            {
+                "display": "Introduction to MCP - Lesson 1",
+                "url": "https://example.com/mcp/lesson1"
+            }
+        ]
+    )
+
+    # Course analytics
+    mock.get_course_analytics.return_value = {
+        "total_courses": 4,
+        "course_titles": [
+            "Introduction to MCP",
+            "Advanced Python",
+            "Web Development",
+            "Data Science"
+        ]
+    }
+
+    return mock
+
+
+@pytest.fixture
+def test_app(mock_rag_system):
+    """Create a test FastAPI app with mocked RAG system"""
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional, Union, Dict
+
+    # Create test app
+    app = FastAPI(title="Test RAG System")
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Pydantic models
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[Union[str, Dict[str, Optional[str]]]]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    # Define endpoints
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        from fastapi import HTTPException
+        try:
+            session_id = request.session_id
+            if not session_id:
+                session_id = mock_rag_system.session_manager.create_session()
+
+            answer, sources = mock_rag_system.query(request.query, session_id)
+
+            return QueryResponse(
+                answer=answer,
+                sources=sources,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        from fastapi import HTTPException
+        try:
+            analytics = mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.delete("/api/session/{session_id}")
+    async def delete_session(session_id: str):
+        from fastapi import HTTPException
+        try:
+            deleted = mock_rag_system.session_manager.delete_session(session_id)
+            if deleted:
+                return {"status": "success", "message": f"Session {session_id} deleted"}
+            else:
+                return {"status": "not_found", "message": f"Session {session_id} not found"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/")
+    async def root():
+        return {"message": "Course Materials RAG System", "status": "running"}
+
+    return app
+
+
+@pytest.fixture
+async def async_client(test_app):
+    """Async test client for FastAPI testing"""
+    from httpx import AsyncClient, ASGITransport
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
