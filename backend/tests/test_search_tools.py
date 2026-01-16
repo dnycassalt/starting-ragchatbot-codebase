@@ -1,6 +1,8 @@
 """Tests for CourseSearchTool and ToolManager"""
-import pytest
+
 from unittest.mock import Mock, patch
+
+import pytest
 from search_tools import CourseSearchTool, ToolManager
 from vector_store import SearchResults
 
@@ -14,23 +16,23 @@ class TestCourseSearchToolDefinition:
         definition = tool.get_tool_definition()
 
         # Verify structure
-        assert 'name' in definition
-        assert 'description' in definition
-        assert 'input_schema' in definition
+        assert "name" in definition
+        assert "description" in definition
+        assert "input_schema" in definition
 
         # Verify name
-        assert definition['name'] == "search_course_content"
+        assert definition["name"] == "search_course_content"
 
         # Verify schema
-        schema = definition['input_schema']
-        assert schema['type'] == "object"
-        assert 'properties' in schema
-        assert 'query' in schema['properties']
-        assert 'course_name' in schema['properties']
-        assert 'lesson_number' in schema['properties']
+        schema = definition["input_schema"]
+        assert schema["type"] == "object"
+        assert "properties" in schema
+        assert "query" in schema["properties"]
+        assert "course_name" in schema["properties"]
+        assert "lesson_number" in schema["properties"]
 
         # Verify only query is required
-        assert schema['required'] == ["query"]
+        assert schema["required"] == ["query"]
 
 
 class TestCourseSearchToolExecution:
@@ -45,9 +47,7 @@ class TestCourseSearchToolExecution:
 
         # Verify vector store called correctly
         mock_vector_store.search.assert_called_once_with(
-            query="test query",
-            course_name=None,
-            lesson_number=None
+            query="test query", course_name=None, lesson_number=None
         )
 
         # Verify result is formatted string
@@ -67,9 +67,7 @@ class TestCourseSearchToolExecution:
 
         # Verify parameters passed correctly
         mock_vector_store.search.assert_called_once_with(
-            query="test query",
-            course_name="MCP",
-            lesson_number=None
+            query="test query", course_name="MCP", lesson_number=None
         )
 
         assert isinstance(result, str)
@@ -83,12 +81,12 @@ class TestCourseSearchToolExecution:
 
         # Verify parameters
         mock_vector_store.search.assert_called_once_with(
-            query="test query",
-            course_name=None,
-            lesson_number=2
+            query="test query", course_name=None, lesson_number=2
         )
 
-    def test_execute_with_all_parameters(self, mock_vector_store, sample_search_results):
+    def test_execute_with_all_parameters(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test tool execution with all parameters"""
         mock_vector_store.search.return_value = sample_search_results
 
@@ -97,9 +95,7 @@ class TestCourseSearchToolExecution:
 
         # Verify all parameters passed
         mock_vector_store.search.assert_called_once_with(
-            query="test query",
-            course_name="MCP",
-            lesson_number=1
+            query="test query", course_name="MCP", lesson_number=1
         )
 
 
@@ -187,8 +183,14 @@ class TestResultFormatting:
         """Test formatting single search result"""
         single_result = SearchResults(
             documents=["MCP stands for Model Context Protocol."],
-            metadata=[{"course_title": "Introduction to MCP", "lesson_number": 1, "chunk_index": 0}],
-            distances=[0.3]
+            metadata=[
+                {
+                    "course_title": "Introduction to MCP",
+                    "lesson_number": 1,
+                    "chunk_index": 0,
+                }
+            ],
+            distances=[0.3],
         )
         mock_vector_store.search.return_value = single_result
 
@@ -199,7 +201,9 @@ class TestResultFormatting:
         assert "[Introduction to MCP - Lesson 1]" in result
         assert "MCP stands for Model Context Protocol" in result
 
-    def test_format_results_multiple_documents(self, mock_vector_store, sample_search_results):
+    def test_format_results_multiple_documents(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test formatting multiple search results"""
         mock_vector_store.search.return_value = sample_search_results
 
@@ -218,7 +222,7 @@ class TestResultFormatting:
         result_no_lesson = SearchResults(
             documents=["General course information"],
             metadata=[{"course_title": "Introduction to MCP", "chunk_index": 0}],
-            distances=[0.3]
+            distances=[0.3],
         )
         mock_vector_store.search.return_value = result_no_lesson
 
@@ -233,9 +237,13 @@ class TestResultFormatting:
 class TestSourceTracking:
     """Test source tracking functionality"""
 
-    def test_format_results_tracks_sources(self, mock_vector_store, sample_search_results):
+    def test_format_results_tracks_sources(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test that formatting populates last_sources"""
-        mock_vector_store.get_lesson_link.return_value = "https://example.com/mcp/lesson1"
+        mock_vector_store.get_lesson_link.return_value = (
+            "https://example.com/mcp/lesson1"
+        )
         mock_vector_store.get_course_link.return_value = "https://example.com/mcp"
         mock_vector_store.search.return_value = sample_search_results
 
@@ -247,8 +255,8 @@ class TestSourceTracking:
 
         # Check source structure
         source = tool.last_sources[0]
-        assert 'display' in source
-        assert 'url' in source
+        assert "display" in source
+        assert "url" in source
 
     def test_format_results_deduplicates_sources(self, mock_vector_store):
         """Test that duplicate sources are not added"""
@@ -256,14 +264,28 @@ class TestSourceTracking:
         duplicate_results = SearchResults(
             documents=["Doc 1", "Doc 2", "Doc 3"],
             metadata=[
-                {"course_title": "Introduction to MCP", "lesson_number": 1, "chunk_index": 0},
-                {"course_title": "Introduction to MCP", "lesson_number": 1, "chunk_index": 1},
-                {"course_title": "Introduction to MCP", "lesson_number": 1, "chunk_index": 2}
+                {
+                    "course_title": "Introduction to MCP",
+                    "lesson_number": 1,
+                    "chunk_index": 0,
+                },
+                {
+                    "course_title": "Introduction to MCP",
+                    "lesson_number": 1,
+                    "chunk_index": 1,
+                },
+                {
+                    "course_title": "Introduction to MCP",
+                    "lesson_number": 1,
+                    "chunk_index": 2,
+                },
             ],
-            distances=[0.1, 0.2, 0.3]
+            distances=[0.1, 0.2, 0.3],
         )
         mock_vector_store.search.return_value = duplicate_results
-        mock_vector_store.get_lesson_link.return_value = "https://example.com/mcp/lesson1"
+        mock_vector_store.get_lesson_link.return_value = (
+            "https://example.com/mcp/lesson1"
+        )
 
         tool = CourseSearchTool(mock_vector_store)
         tool.execute(query="test")
@@ -273,7 +295,9 @@ class TestSourceTracking:
 
     def test_sources_with_lesson_links(self, mock_vector_store, sample_search_results):
         """Test source retrieval prioritizes lesson links"""
-        mock_vector_store.get_lesson_link.return_value = "https://example.com/mcp/lesson1"
+        mock_vector_store.get_lesson_link.return_value = (
+            "https://example.com/mcp/lesson1"
+        )
         mock_vector_store.get_course_link.return_value = "https://example.com/mcp"
         mock_vector_store.search.return_value = sample_search_results
 
@@ -282,9 +306,11 @@ class TestSourceTracking:
 
         # Verify lesson link used
         mock_vector_store.get_lesson_link.assert_called()
-        assert tool.last_sources[0]['url'] == "https://example.com/mcp/lesson1"
+        assert tool.last_sources[0]["url"] == "https://example.com/mcp/lesson1"
 
-    def test_sources_fallback_to_course_link(self, mock_vector_store, sample_search_results):
+    def test_sources_fallback_to_course_link(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test source retrieval falls back to course link"""
         mock_vector_store.get_lesson_link.return_value = None  # No lesson link
         mock_vector_store.get_course_link.return_value = "https://example.com/mcp"
@@ -294,7 +320,7 @@ class TestSourceTracking:
         tool.execute(query="test")
 
         # Should fall back to course link
-        assert tool.last_sources[0]['url'] == "https://example.com/mcp"
+        assert tool.last_sources[0]["url"] == "https://example.com/mcp"
 
     def test_sources_with_no_links(self, mock_vector_store, sample_search_results):
         """Test sources when no links available"""
@@ -306,9 +332,11 @@ class TestSourceTracking:
         tool.execute(query="test")
 
         # Source URL should be None
-        assert tool.last_sources[0]['url'] is None
+        assert tool.last_sources[0]["url"] is None
 
-    def test_sources_reset_on_new_execution(self, mock_vector_store, sample_search_results):
+    def test_sources_reset_on_new_execution(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test that sources are replaced, not appended"""
         mock_vector_store.search.return_value = sample_search_results
 
@@ -349,7 +377,7 @@ class TestToolManager:
         definitions = manager.get_tool_definitions()
 
         assert len(definitions) == 1
-        assert definitions[0]['name'] == "search_course_content"
+        assert definitions[0]["name"] == "search_course_content"
 
     def test_execute_tool_success(self, mock_vector_store, sample_search_results):
         """Test executing registered tool"""

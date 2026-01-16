@@ -1,6 +1,8 @@
 """Tests for sequential tool calling in AIGenerator"""
-import pytest
+
 from unittest.mock import Mock, patch
+
+import pytest
 from ai_generator import AIGenerator
 
 
@@ -8,16 +10,12 @@ class TestSequentialToolCalling:
     """Test sequential (multi-round) tool calling functionality"""
 
     def test_sequential_tool_calls_two_rounds(
-        self,
-        mock_anthropic_client,
-        mock_tool_manager
+        self, mock_anthropic_client, mock_tool_manager
     ):
         """Test Claude making 2 sequential tool calls"""
-        with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
+        with patch("anthropic.Anthropic", return_value=mock_anthropic_client):
             generator = AIGenerator(
-                api_key="test-key",
-                model="claude-sonnet-4-20250514",
-                max_tool_rounds=2
+                api_key="test-key", model="claude-sonnet-4-20250514", max_tool_rounds=2
             )
 
             # Round 1: Search for MCP lesson 4
@@ -30,7 +28,7 @@ class TestSequentialToolCalling:
             round1_tool_block.input = {
                 "query": "lesson 4",
                 "course_name": "MCP",
-                "lesson_number": 4
+                "lesson_number": 4,
             }
             round1_tool_response.content = [round1_tool_block]
 
@@ -48,9 +46,11 @@ class TestSequentialToolCalling:
             final_response = Mock()
             final_response.stop_reason = "end_turn"
             final_text = Mock()
-            final_text.text = ("MCP lesson 4 covers server implementation. "
-                              "Other courses covering this topic include "
-                              "Advanced Python.")
+            final_text.text = (
+                "MCP lesson 4 covers server implementation. "
+                "Other courses covering this topic include "
+                "Advanced Python."
+            )
             final_text.type = "text"
             final_response.content = [final_text]
 
@@ -58,23 +58,27 @@ class TestSequentialToolCalling:
             mock_anthropic_client.messages.create.side_effect = [
                 round1_tool_response,  # Initial query
                 round2_tool_response,  # After Round 1 execution
-                final_response         # After Round 2 execution
+                final_response,  # After Round 2 execution
             ]
 
             # Mock tool execution returns
             mock_tool_manager.execute_tool.side_effect = [
                 "[MCP - Lesson 4]\nThis lesson covers server implementation",
-                ("[Advanced Python - Lesson 3]\n"
-                 "This lesson also covers server implementation")
+                (
+                    "[Advanced Python - Lesson 3]\n"
+                    "This lesson also covers server implementation"
+                ),
             ]
 
             tool_defs = [{"name": "search_course_content"}]
 
             response = generator.generate_response(
-                query=("What topic is in lesson 4 of MCP and find other "
-                      "courses about that topic?"),
+                query=(
+                    "What topic is in lesson 4 of MCP and find other "
+                    "courses about that topic?"
+                ),
                 tools=tool_defs,
-                tool_manager=mock_tool_manager
+                tool_manager=mock_tool_manager,
             )
 
             # Verify 3 API calls made (initial + round 1 + round 2)
@@ -89,9 +93,7 @@ class TestSequentialToolCalling:
             assert first_tool_call[1]["lesson_number"] == 4
 
             # Verify second tool call had correct params
-            second_tool_call = (
-                mock_tool_manager.execute_tool.call_args_list[1]
-            )
+            second_tool_call = mock_tool_manager.execute_tool.call_args_list[1]
             assert second_tool_call[0][0] == "search_course_content"
             assert second_tool_call[1]["query"] == "server implementation"
 
@@ -100,26 +102,19 @@ class TestSequentialToolCalling:
             assert "Advanced Python" in response
 
             # Verify Round 1 had tools, Round 2 did NOT have tools
-            call_1_args = (
-                mock_anthropic_client.messages.create.call_args_list[1][1]
-            )
-            assert 'tools' in call_1_args  # Round 1 should have tools
+            call_1_args = mock_anthropic_client.messages.create.call_args_list[1][1]
+            assert "tools" in call_1_args  # Round 1 should have tools
 
-            call_2_args = (
-                mock_anthropic_client.messages.create.call_args_list[2][1]
-            )
-            assert 'tools' not in call_2_args  # Round 2 should NOT have tools
+            call_2_args = mock_anthropic_client.messages.create.call_args_list[2][1]
+            assert "tools" not in call_2_args  # Round 2 should NOT have tools
 
     def test_sequential_tool_calls_early_termination(
-        self,
-        mock_anthropic_client,
-        mock_tool_manager
+        self, mock_anthropic_client, mock_tool_manager
     ):
         """Test loop exits early if Claude stops using tools after Round 1"""
-        with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
+        with patch("anthropic.Anthropic", return_value=mock_anthropic_client):
             generator = AIGenerator(
-                api_key="test-key",
-                model="claude-sonnet-4-20250514"
+                api_key="test-key", model="claude-sonnet-4-20250514"
             )
 
             # Round 1: tool_use
@@ -142,7 +137,7 @@ class TestSequentialToolCalling:
 
             mock_anthropic_client.messages.create.side_effect = [
                 round1_response,
-                final_response
+                final_response,
             ]
 
             mock_tool_manager.execute_tool.return_value = (
@@ -152,7 +147,7 @@ class TestSequentialToolCalling:
             response = generator.generate_response(
                 query="What is MCP?",
                 tools=[{"name": "search_course_content"}],
-                tool_manager=mock_tool_manager
+                tool_manager=mock_tool_manager,
             )
 
             # Should only make 2 API calls (not 3)
@@ -160,16 +155,11 @@ class TestSequentialToolCalling:
             assert mock_tool_manager.execute_tool.call_count == 1
             assert "Model Context Protocol" in response
 
-    def test_max_rounds_enforcement(
-        self,
-        mock_anthropic_client,
-        mock_tool_manager
-    ):
+    def test_max_rounds_enforcement(self, mock_anthropic_client, mock_tool_manager):
         """Test system stops after 2 rounds even if Claude wants more"""
-        with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
+        with patch("anthropic.Anthropic", return_value=mock_anthropic_client):
             generator = AIGenerator(
-                api_key="test-key",
-                model="claude-sonnet-4-20250514"
+                api_key="test-key", model="claude-sonnet-4-20250514"
             )
 
             # All responses are tool_use (Claude keeps wanting to search)
@@ -192,10 +182,10 @@ class TestSequentialToolCalling:
 
             # Claude tries to use tools 3 times, but gets cut off
             mock_anthropic_client.messages.create.side_effect = [
-                tool_response,   # Initial
-                tool_response,   # After Round 1
-                tool_response,   # After Round 2 (triggers max rounds)
-                final_response   # Forced final call
+                tool_response,  # Initial
+                tool_response,  # After Round 1
+                tool_response,  # After Round 2 (triggers max rounds)
+                final_response,  # Forced final call
             ]
 
             mock_tool_manager.execute_tool.return_value = "Search result"
@@ -203,7 +193,7 @@ class TestSequentialToolCalling:
             response = generator.generate_response(
                 query="Complex query",
                 tools=[{"name": "search_course_content"}],
-                tool_manager=mock_tool_manager
+                tool_manager=mock_tool_manager,
             )
 
             # Should make 4 API calls: initial + round1 + round2 + forced final
@@ -213,23 +203,18 @@ class TestSequentialToolCalling:
             assert mock_tool_manager.execute_tool.call_count == 2
 
             # Final call should NOT have tools
-            final_call_args = (
-                mock_anthropic_client.messages.create.call_args_list[3][1]
-            )
-            assert 'tools' not in final_call_args
+            final_call_args = mock_anthropic_client.messages.create.call_args_list[3][1]
+            assert "tools" not in final_call_args
 
             assert "Based on previous searches" in response
 
     def test_message_history_preservation_across_rounds(
-        self,
-        mock_anthropic_client,
-        mock_tool_manager
+        self, mock_anthropic_client, mock_tool_manager
     ):
         """Test that message history grows correctly across multiple rounds"""
-        with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
+        with patch("anthropic.Anthropic", return_value=mock_anthropic_client):
             generator = AIGenerator(
-                api_key="test-key",
-                model="claude-sonnet-4-20250514"
+                api_key="test-key", model="claude-sonnet-4-20250514"
             )
 
             # Setup responses
@@ -261,62 +246,50 @@ class TestSequentialToolCalling:
             mock_anthropic_client.messages.create.side_effect = [
                 round1_response,
                 round2_response,
-                final_response
+                final_response,
             ]
 
-            mock_tool_manager.execute_tool.side_effect = [
-                "Result 1",
-                "Result 2"
-            ]
+            mock_tool_manager.execute_tool.side_effect = ["Result 1", "Result 2"]
 
             generator.generate_response(
                 query="Test query",
                 tools=[{"name": "search_course_content"}],
-                tool_manager=mock_tool_manager
+                tool_manager=mock_tool_manager,
             )
 
             # Verify API call sequence
             # Call 0: initial user query → round1_response (tool_use)
-            initial_call = (
-                mock_anthropic_client.messages.create.call_args_list[0][1]
-            )
-            assert len(initial_call['messages']) == 1  # Just user query
-            assert initial_call['messages'][0]['content'] == 'Test query'
+            initial_call = mock_anthropic_client.messages.create.call_args_list[0][1]
+            assert len(initial_call["messages"]) == 1  # Just user query
+            assert initial_call["messages"][0]["content"] == "Test query"
 
             # After call 0 returns tool_use, Round 1 tool execution happens
             # Call 1: after Round 1 tool execution → round2_response (tool_use)
-            round1_call = (
-                mock_anthropic_client.messages.create.call_args_list[1][1]
-            )
-            round1_messages = round1_call['messages']
+            round1_call = mock_anthropic_client.messages.create.call_args_list[1][1]
+            round1_messages = round1_call["messages"]
             # During Round 1, should have 3 messages
             assert len(round1_messages) >= 3
-            assert round1_messages[0]['role'] == 'user'
-            assert round1_messages[1]['role'] == 'assistant'
-            assert round1_messages[2]['role'] == 'user'
+            assert round1_messages[0]["role"] == "user"
+            assert round1_messages[1]["role"] == "assistant"
+            assert round1_messages[2]["role"] == "user"
 
             # After call 1 returns tool_use, Round 2 tool execution happens
             # Call 2: after Round 2 tool execution → final_response (end_turn)
-            round2_call = (
-                mock_anthropic_client.messages.create.call_args_list[2][1]
-            )
-            round2_messages = round2_call['messages']
+            round2_call = mock_anthropic_client.messages.create.call_args_list[2][1]
+            round2_messages = round2_call["messages"]
             # During Round 2, should have 5 messages total
             assert len(round2_messages) >= 5
             # Verify the additional assistant and user messages
-            assert any(msg['role'] == 'assistant' for msg in round2_messages[3:])
-            assert any(msg['role'] == 'user' for msg in round2_messages[3:])
+            assert any(msg["role"] == "assistant" for msg in round2_messages[3:])
+            assert any(msg["role"] == "user" for msg in round2_messages[3:])
 
     def test_tool_execution_error_handling(
-        self,
-        mock_anthropic_client,
-        mock_tool_manager
+        self, mock_anthropic_client, mock_tool_manager
     ):
         """Test graceful handling of tool execution errors"""
-        with patch('anthropic.Anthropic', return_value=mock_anthropic_client):
+        with patch("anthropic.Anthropic", return_value=mock_anthropic_client):
             generator = AIGenerator(
-                api_key="test-key",
-                model="claude-sonnet-4-20250514"
+                api_key="test-key", model="claude-sonnet-4-20250514"
             )
 
             # Round 1: tool_use
@@ -339,7 +312,7 @@ class TestSequentialToolCalling:
 
             mock_anthropic_client.messages.create.side_effect = [
                 tool_response,
-                final_response
+                final_response,
             ]
 
             # Tool execution raises exception
@@ -350,16 +323,15 @@ class TestSequentialToolCalling:
             response = generator.generate_response(
                 query="Test query",
                 tools=[{"name": "search_course_content"}],
-                tool_manager=mock_tool_manager
+                tool_manager=mock_tool_manager,
             )
 
             # Should still get a response
             assert "error" in response.lower()
 
             # Error should be passed to Claude in tool result
-            final_call_args = (
-                mock_anthropic_client.messages.create.call_args_list[1][1]
+            final_call_args = mock_anthropic_client.messages.create.call_args_list[1][1]
+            tool_result_message = final_call_args["messages"][2]
+            assert (
+                "Tool execution error" in tool_result_message["content"][0]["content"]
             )
-            tool_result_message = final_call_args['messages'][2]
-            assert ("Tool execution error" in
-                   tool_result_message['content'][0]['content'])

@@ -1,8 +1,10 @@
 """Integration tests for sequential tool calling functionality"""
+
+import json
+from typing import Any, Dict
+
 import pytest
 import requests
-import json
-from typing import Dict, Any
 
 
 @pytest.fixture
@@ -21,24 +23,22 @@ class TestSequentialToolCallingIntegration:
     """Integration tests for sequential tool calling with real queries"""
 
     def test_comparison_query_two_courses(
-        self,
-        base_url: str,
-        api_headers: Dict[str, str]
+        self, base_url: str, api_headers: Dict[str, str]
     ):
         """
         Test comparing lesson 3 across two courses - should trigger
         sequential tool calls
         """
         query_data = {
-            "query": ("Compare lesson 3 in 'Advanced Retrieval for AI "
-                     "with Chroma' vs 'Prompt Compression and Query "
-                     "Optimization'")
+            "query": (
+                "Compare lesson 3 in 'Advanced Retrieval for AI "
+                "with Chroma' vs 'Prompt Compression and Query "
+                "Optimization'"
+            )
         }
 
         response = requests.post(
-            f"{base_url}/api/query",
-            headers=api_headers,
-            data=json.dumps(query_data)
+            f"{base_url}/api/query", headers=api_headers, data=json.dumps(query_data)
         )
 
         assert response.status_code == 200
@@ -59,10 +59,7 @@ class TestSequentialToolCallingIntegration:
         assert len(sources) > 0
 
         # Verify sources contain references to both courses
-        source_texts = [
-            s["display"] if isinstance(s, dict) else s
-            for s in sources
-        ]
+        source_texts = [s["display"] if isinstance(s, dict) else s for s in sources]
         source_combined = " ".join(source_texts).lower()
 
         # At least one mention of each course should appear
@@ -76,7 +73,7 @@ class TestSequentialToolCallingIntegration:
         )
 
         # Log for debugging
-        print(f"\n--- Comparison Query Test ---")
+        print("\n--- Comparison Query Test ---")
         print(f"Query: {query_data['query']}")
         print(f"Answer length: {len(data['answer'])} chars")
         print(f"Number of sources: {len(sources)}")
@@ -85,28 +82,26 @@ class TestSequentialToolCallingIntegration:
         print(f"Has Prompt sources: {has_prompt}")
 
         # At least one course should be referenced in sources
-        assert has_chroma or has_prompt, (
-            "Expected sources from at least one of the compared courses"
-        )
+        assert (
+            has_chroma or has_prompt
+        ), "Expected sources from at least one of the compared courses"
 
     def test_multi_part_query_lesson_topic_search(
-        self,
-        base_url: str,
-        api_headers: Dict[str, str]
+        self, base_url: str, api_headers: Dict[str, str]
     ):
         """
         Test multi-part query: get topic from one lesson, find other
         courses about that topic
         """
         query_data = {
-            "query": ("What topic is covered in lesson 1 of MCP and "
-                     "find other courses about that topic")
+            "query": (
+                "What topic is covered in lesson 1 of MCP and "
+                "find other courses about that topic"
+            )
         }
 
         response = requests.post(
-            f"{base_url}/api/query",
-            headers=api_headers,
-            data=json.dumps(query_data)
+            f"{base_url}/api/query", headers=api_headers, data=json.dumps(query_data)
         )
 
         assert response.status_code == 200
@@ -123,28 +118,26 @@ class TestSequentialToolCallingIntegration:
         # Should have sources
         assert len(data["sources"]) > 0
 
-        print(f"\n--- Multi-Part Query Test ---")
+        print("\n--- Multi-Part Query Test ---")
         print(f"Query: {query_data['query']}")
         print(f"Answer preview: {data['answer'][:200]}...")
         print(f"Number of sources: {len(data['sources'])}")
 
     def test_course_outline_then_specific_lesson(
-        self,
-        base_url: str,
-        api_headers: Dict[str, str]
+        self, base_url: str, api_headers: Dict[str, str]
     ):
         """
         Test querying for course outline first, then specific lesson
         """
         query_data = {
-            "query": ("Get the outline of 'MCP: Build Rich-Context AI "
-                     "Apps with Anthropic' then tell me about lesson 2")
+            "query": (
+                "Get the outline of 'MCP: Build Rich-Context AI "
+                "Apps with Anthropic' then tell me about lesson 2"
+            )
         }
 
         response = requests.post(
-            f"{base_url}/api/query",
-            headers=api_headers,
-            data=json.dumps(query_data)
+            f"{base_url}/api/query", headers=api_headers, data=json.dumps(query_data)
         )
 
         assert response.status_code == 200
@@ -162,29 +155,23 @@ class TestSequentialToolCallingIntegration:
         # Should have sources
         assert len(data["sources"]) > 0
 
-        print(f"\n--- Outline + Specific Lesson Test ---")
+        print("\n--- Outline + Specific Lesson Test ---")
         print(f"Query: {query_data['query']}")
         print(f"Answer preview: {data['answer'][:200]}...")
         print(f"Number of sources: {len(data['sources'])}")
 
     def test_session_persistence_across_sequential_calls(
-        self,
-        base_url: str,
-        api_headers: Dict[str, str]
+        self, base_url: str, api_headers: Dict[str, str]
     ):
         """
         Test that session is maintained correctly during sequential
         tool calls
         """
         # First query
-        query1_data = {
-            "query": "What is MCP?"
-        }
+        query1_data = {"query": "What is MCP?"}
 
         response1 = requests.post(
-            f"{base_url}/api/query",
-            headers=api_headers,
-            data=json.dumps(query1_data)
+            f"{base_url}/api/query", headers=api_headers, data=json.dumps(query1_data)
         )
 
         assert response1.status_code == 200
@@ -193,15 +180,15 @@ class TestSequentialToolCallingIntegration:
 
         # Second query using same session - should trigger sequential calls
         query2_data = {
-            "query": ("Compare that with lesson 1 of 'Advanced "
-                     "Retrieval for AI with Chroma'"),
-            "session_id": session_id
+            "query": (
+                "Compare that with lesson 1 of 'Advanced "
+                "Retrieval for AI with Chroma'"
+            ),
+            "session_id": session_id,
         }
 
         response2 = requests.post(
-            f"{base_url}/api/query",
-            headers=api_headers,
-            data=json.dumps(query2_data)
+            f"{base_url}/api/query", headers=api_headers, data=json.dumps(query2_data)
         )
 
         assert response2.status_code == 200
@@ -213,7 +200,7 @@ class TestSequentialToolCallingIntegration:
         # Should have an answer referencing the comparison
         assert len(data2["answer"]) > 0
 
-        print(f"\n--- Session Persistence Test ---")
+        print("\n--- Session Persistence Test ---")
         print(f"Session ID: {session_id}")
         print(f"Query 1: {query1_data['query']}")
         print(f"Query 2: {query2_data['query']}")
@@ -221,8 +208,7 @@ class TestSequentialToolCallingIntegration:
 
 
 @pytest.mark.skipif(
-    True,
-    reason="Requires running server - run manually with 'make test-integration'"
+    True, reason="Requires running server - run manually with 'make test-integration'"
 )
 class TestManualSequentialIntegration:
     """

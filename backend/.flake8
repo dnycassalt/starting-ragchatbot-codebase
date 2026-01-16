@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 88
+# Black compatibility + common issues
+extend-ignore = E203, W503, F401, F841, E501
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .venv,
+    chroma_db,
+    htmlcov,
+    build,
+    dist
+per-file-ignores =
+    __init__.py:F401,F403
+    app.py:E402
+    tests/*:E402,F401,F841
